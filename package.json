@@ -1,0 +1,19 @@
+{
+  "name": "lighthouse-sitemap-audit",
+  "version": "1.0.0",
+  "private": true,
+  "description": "One-time full-site audit from sitemap.xml using Lighthouse",
+  "main": "audit.js",
+  "scripts": {
+    "audit": "node audit.js",
+    "audit:extended": "node audit.js --a11y extended --standard WCAG2AA"
+  },
+  "dependencies": {
+    "chalk": "^5.3.0",
+    "chrome-launcher": "^1.1.0",
+    "csv-writer": "^1.6.0",
+    "fast-xml-parser": "^4.5.0",
+    "lighthouse": "^12.6.1",
+    "pa11y": "^9.1.1"
+  }
+}
