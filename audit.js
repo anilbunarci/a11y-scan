@@ -1,35 +1,28 @@
 #!/usr/bin/env node
 
-"use strict";
-
-const fs = require("fs");
-const path = require("path");
-const chromeLauncher = require("chrome-launcher");
-const { createObjectCsvWriter } = require("csv-writer");
-
-const { getArg, getPositionalArg } = require("./lib/args");
-const { getUrlsFromSitemap } = require("./lib/sitemap");
-const { runLighthouse } = require("./lib/lighthouse");
-const { loadPa11y, runPa11y } = require("./lib/pa11y");
-const {
-  collectLighthouseFindings,
-  collectPa11yFindings,
-  countAccessibilityIssues,
-  aggregateCommonIssues,
-  getWorstRows,
-} = require("./lib/analysis");
-const { renderHtmlDashboard, renderPa11yHtml } = require("./lib/render");
-const {
-  renderProgress,
-  logAboveBar,
-  clearProgress,
-} = require("./lib/progress");
-const {
-  normalizeArray,
-  sanitizeFileName,
-  scoreToPercent,
+import fs from "fs";
+import path from "path";
+import { createObjectCsvWriter } from "csv-writer";
+import { runLighthouse } from "./lib/lighthouse.js";
+import { loadPa11y, runPa11y } from "./lib/pa11y.js";
+import { getUrlsFromSitemap } from "./lib/sitemap.js";
+import { launch as launchChrome } from "chrome-launcher";
+import { getArg, getPositionalArg } from "./lib/args.js";
+import { renderHtmlDashboard, renderPa11yHtml } from "./lib/render.js";
+import { renderProgress, logAboveBar, clearProgress } from "./lib/progress.js";
+import {
   average,
-} = require("./lib/utils");
+  normalizeArray,
+  scoreToPercent,
+  sanitizeFileName,
+} from "./lib/utils.js";
+import {
+  getWorstRows,
+  collectPa11yFindings,
+  aggregateCommonIssues,
+  countAccessibilityIssues,
+  collectLighthouseFindings,
+} from "./lib/analysis.js";
 
 async function main() {
   const sitemapUrl = getArg("sitemap") || getPositionalArg(0);
@@ -67,7 +60,7 @@ async function main() {
   }
 
   const extendedA11yEnabled = a11yMode === "extended";
-  if (extendedA11yEnabled && !loadPa11y()) {
+  if (extendedA11yEnabled && !(await loadPa11y())) {
     console.warn(
       "Extended accessibility mode requested, but `pa11y` is not installed yet. Falling back to Lighthouse-only accessibility checks.",
     );
@@ -109,7 +102,7 @@ async function main() {
   const totalSteps = urls.length * formFactors.length;
   let completedSteps = 0;
 
-  const chrome = await chromeLauncher.launch({
+  const chrome = await launchChrome({
     chromeFlags: ["--headless=new", "--no-sandbox", "--disable-dev-shm-usage"],
   });
 
@@ -141,7 +134,7 @@ async function main() {
           let pa11yReportJson = "";
           let pa11yReportHtml = "";
 
-          if (extendedA11yEnabled && loadPa11y()) {
+          if (extendedA11yEnabled && (await loadPa11y())) {
             try {
               pa11yResults = await runPa11y(url, wcagStandard);
               pa11yFindings = collectPa11yFindings(pa11yResults);
