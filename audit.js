@@ -123,7 +123,12 @@ async function main() {
         try {
           const result = await runLighthouse(url, formFactor, chrome);
           const [htmlReport, jsonReport] = result.report;
-          fs.writeFileSync(htmlPath, htmlReport, "utf8");
+          const backBtn = `<a href="../index.html" style="position:fixed;top:72px;left:16px;z-index:9999;background:#fff;border:1px solid #ccc;border-radius:6px;padding:6px 14px;font-family:Arial,sans-serif;font-size:13px;color:#444;text-decoration:none;box-shadow:0 1px 4px rgba(0,0,0,.15)">&larr; Back</a>`;
+          fs.writeFileSync(
+            htmlPath,
+            htmlReport.replace("</body>", backBtn + "</body>"),
+            "utf8",
+          );
           fs.writeFileSync(jsonPath, jsonReport, "utf8");
 
           const lhr = result.lhr;
