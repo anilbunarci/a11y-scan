@@ -2,6 +2,7 @@
   "name": "lighthouse-sitemap-audit",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
   "description": "One-time full-site audit from sitemap.xml using Lighthouse",
   "main": "audit.js",
   "scripts": {
