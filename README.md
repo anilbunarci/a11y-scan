@@ -1,14 +1,22 @@
 # Lighthouse Sitemap Audit
 
-A small Node.js app you can run in VS Code to:
+Audit every page listed in a sitemap (including nested sitemap indexes) with Lighthouse, then generate:
 
-1. read a `sitemap.xml`
-2. collect all URLs (including nested sitemap indexes)
-3. run Lighthouse for each URL
-4. generate per-page HTML/JSON reports
-5. run Lighthouse plus extended accessibility checks
-6. generate a combined HTML dashboard + CSV + JSON summary
-7. surface common issues across pages so you can prioritize fixes faster
+- per-page HTML and JSON reports
+- optional extended accessibility reports with pa11y
+- a combined dashboard and machine-readable summaries
+
+This is designed for full-site, one-command quality baselining across performance, accessibility, best practices, and SEO.
+
+## What It Does
+
+1. Fetches a sitemap URL and recursively resolves nested sitemap indexes.
+2. Deduplicates URLs and auto-excludes paths containing `/-/media/`.
+3. Applies optional include/exclude regex filters.
+4. Runs Lighthouse for each URL on mobile, desktop, or both.
+5. Runs pa11y checks when extended accessibility mode is enabled.
+6. Aggregates common issues and identifies best/worst pages.
+7. Writes an HTML dashboard plus CSV and JSON summaries.
 
 ## Requirements
 
@@ -21,23 +29,46 @@ A small Node.js app you can run in VS Code to:
 npm install
 ```
 
-This project can now use `pa11y` for deeper accessibility coverage in addition to Lighthouse.
+## Scripts
 
-## Run
+- `npm run audit` - run the main audit CLI
+- `npm run audit:extended` - run with `--a11y extended --standard WCAG2AA`
 
-### Audit all sitemap URLs for mobile + desktop
+## CLI Usage
+
+### Named arguments (recommended)
+
+```bash
+npm run audit -- --sitemap https://example.com/sitemap.xml [options]
+```
+
+### Positional arguments (also supported)
+
+```bash
+npm run audit -- <sitemap> [outDir] [mobile|desktop|both] [limit]
+```
+
+### Options
+
+- `--sitemap <url>`: sitemap URL (required unless positional arg 1 is used)
+- `--out <dir>`: output directory (default: `./audit-output`)
+- `--device <mobile|desktop|both>`: form factor(s) (default: `both`)
+- `--limit <n>`: only audit first `n` URLs after filtering
+- `--include <regex>`: include URLs matching regex (case-insensitive)
+- `--exclude <regex>`: exclude URLs matching regex (case-insensitive)
+- `--a11y <standard|extended>`: accessibility mode (default: `extended`)
+- `--standard <WCAG standard>`: pa11y standard in extended mode (default: `WCAG2AA`)
+- `--wcag <WCAG standard>`: alias for `--standard`
+
+Note: when using `npm run`, prefer `--standard` instead of `--wcag`. Some npm versions can misread `--wcag` before your script receives arguments.
+
+## Examples
+
+### Audit all sitemap URLs for mobile and desktop
 
 ```bash
 npm run audit -- --sitemap https://example.com/sitemap.xml --out ./audit-output --device both
 ```
-
-### Run with extended accessibility coverage
-
-```bash
-npm run audit -- --sitemap https://example.com/sitemap.xml --a11y extended --standard WCAG2AA
-```
-
-Note: when using `npm run`, prefer `--standard` instead of `--wcag`. Some npm versions misread `--wcag` as npm's own shorthand flags before your script starts.
 
 ### Audit only mobile
 
@@ -51,57 +82,49 @@ npm run audit -- --sitemap https://example.com/sitemap.xml --device mobile
 npm run audit -- --sitemap https://example.com/sitemap.xml --limit 25
 ```
 
-### Positional CLI style also works
-
-```bash
-npm run audit -- https://example.com/sitemap.xml ./audit-output both 25
-```
-
-### Include only a section
+### Include only one section
 
 ```bash
 npm run audit -- --sitemap https://example.com/sitemap.xml --include "/news/"
 ```
 
-### Exclude PDFs or search pages
+### Exclude PDFs and search pages
 
 ```bash
 npm run audit -- --sitemap https://example.com/sitemap.xml --exclude "\\.pdf$|/search"
 ```
 
+### Extended accessibility with an explicit standard
+
+```bash
+npm run audit -- --sitemap https://example.com/sitemap.xml --a11y extended --standard WCAG2AA
+```
+
 ## Output
 
-The app creates:
+The app writes:
 
-- `audit-output/index.html` → combined dashboard
-- `audit-output/summary.csv` → spreadsheet-friendly summary with Lighthouse issues, extended accessibility findings, and key performance metrics
-- `audit-output/summary.json` → raw summary data plus common issue rollups and worst pages
-- `audit-output/reports/*.html` → one Lighthouse HTML report per URL/device
-- `audit-output/reports/*.json` → one Lighthouse JSON report per URL/device
-- `audit-output/reports/*.pa11y.json` → one extended accessibility report per URL/device when `pa11y` is installed
+- `audit-output/index.html`: combined dashboard
+- `audit-output/summary.csv`: flattened per-page summary (scores, issue counts, links, key metrics)
+- `audit-output/summary.json`: raw `{ summary, rows }` payload
+- `audit-output/reports/*.html`: Lighthouse HTML reports per URL/device
+- `audit-output/reports/*.json`: Lighthouse JSON reports per URL/device
+- `audit-output/reports/*.pa11y.json`: pa11y JSON reports per URL/device (extended mode)
+- `audit-output/reports/*.pa11y.html`: pa11y HTML reports per URL/device (extended mode)
 
-## What The Dashboard Now Highlights
+## Dashboard Highlights
 
-- average Lighthouse scores
-- average accessibility findings per page
-- most common issues across the crawl
-- worst-performing pages to prioritize first
-- top issues per page
-- extended accessibility issue counts from `pa11y`
+- per-device tabs (mobile/desktop)
+- score gauges for average Performance, Accessibility, Best Practices, and SEO
+- executive summary and recommended next steps
+- most common issues across pages (with counts and recommendations)
+- worst-performing and best-performing pages
+- all-audited-pages table with status/health filtering
 
-## Free Tool Integrations To Consider Next
+## Current Behavior Notes
 
-- `pa11y`: deeper automated accessibility testing than Lighthouse alone and now supported by this tool
-- `axe-core` or `@axe-core/cli`: useful if you want a dedicated accessibility-only workflow
-- `html-validate`: catches invalid markup patterns that often contribute to accessibility and SEO issues
-- `linkinator`: finds broken internal links across the site
-- `sitemap-validator`: verifies sitemap coverage and malformed entries
-- `Lighthouse CI`: stores runs over time so you can compare regressions
-- `webhint`: additional best-practices and standards checks
-
-## Notes
-
-- Lighthouse results vary slightly from run to run, especially performance.
-- Lighthouse is still an automated baseline; the new `pa11y` layer improves accessibility coverage but does not replace manual keyboard and screen-reader testing.
-- For authenticated pages, log in first with a dedicated Chrome profile and extend the script later to reuse that profile.
-- If the site is very large, use `--limit`, `--include`, or `--exclude` to run sections separately.
+- `--a11y` defaults to `extended`.
+- If extended mode is requested but pa11y cannot load, the run continues with Lighthouse-only accessibility checks.
+- Lighthouse runs with simulated throttling presets for mobile and desktop, and blocks select third-party patterns (`*facebook.net*`, `*twitter.com*`) to reduce noisy best-practices failures.
+- Results can vary slightly between runs, especially performance metrics.
+- Automated checks are a baseline; manual keyboard and screen-reader testing is still required.
